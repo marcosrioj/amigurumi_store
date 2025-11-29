@@ -1,0 +1,19 @@
+:root {
+  color-scheme: dark;
+  font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 20% 30%, rgba(34,211,238,0.15), transparent 25%),
+    radial-gradient(circle at 80% 10%, rgba(244,114,182,0.14), transparent 20%),
+    #050915;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
