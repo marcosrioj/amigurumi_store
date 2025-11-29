@@ -2,11 +2,13 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 COPY Directory.Build.props ./Directory.Build.props
-COPY src/Services/Ordering/Ordering.Api/Ordering.Api.csproj ./Ordering.Api.csproj
-RUN dotnet restore Ordering.Api.csproj
+COPY src/Services/Ordering/Ordering.Api/Ordering.Api.csproj ./src/Services/Ordering/Ordering.Api/Ordering.Api.csproj
+COPY src/Services/Ordering/Ordering.Application/Ordering.Application.csproj ./src/Services/Ordering/Ordering.Application/Ordering.Application.csproj
+RUN dotnet restore ./src/Services/Ordering/Ordering.Api/Ordering.Api.csproj
 
-COPY src/Services/Ordering/Ordering.Api/. .
-RUN dotnet publish Ordering.Api.csproj -c Release -o /app/publish
+COPY src/Services/Ordering/Ordering.Api ./src/Services/Ordering/Ordering.Api
+COPY src/Services/Ordering/Ordering.Application ./src/Services/Ordering/Ordering.Application
+RUN dotnet publish ./src/Services/Ordering/Ordering.Api/Ordering.Api.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app

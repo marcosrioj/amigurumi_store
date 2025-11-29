@@ -1,0 +1,10 @@
+{
+  "name": "@amigurumi/api",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "private": true,
+  "dependencies": {
+    "@amigurumi/config": "0.1.0",
+    "axios": "^1.7.7"
+  }
+}

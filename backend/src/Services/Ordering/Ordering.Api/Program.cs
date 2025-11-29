@@ -3,12 +3,22 @@ using AmigurumiStore.Ordering.Application.Data;
 using AmigurumiStore.Ordering.Application.Dtos;
 using AmigurumiStore.Ordering.Application.Extensions;
 using AmigurumiStore.Ordering.Application.Queries;
+using AmigurumiStore.Ordering.Api.Health;
 using MediatR;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOrderingApplication(builder.Configuration.GetConnectionString("OrderingDb")!);
+builder.Services.AddProblemDetails(options =>
+{
+    options.Map<KeyNotFoundException>(ex => Results.Problem(title: "Not found", detail: ex.Message, statusCode: StatusCodes.Status404NotFound));
+    options.Map<InvalidOperationException>(ex => Results.Problem(title: "Invalid operation", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest));
+    options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
+});
+builder.Services.AddExceptionHandler();
+builder.Services.AddHealthChecks().AddCheck<DbHealthCheck>("ordering-db");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -19,6 +29,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionHandler();
 
 app.MapGet("/api/orders", async ([FromServices] IMediator mediator, CancellationToken ct) =>
     Results.Ok(await mediator.Send(new GetOrdersQuery(), ct)));
@@ -40,6 +52,8 @@ app.MapPatch("/api/orders/{id:guid}/status", async (Guid id, UpdateStatusDto req
     await mediator.Send(new UpdateOrderStatusCommand(id, request.Status), ct);
     return Results.NoContent();
 });
+
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {

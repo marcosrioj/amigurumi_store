@@ -1,30 +1,20 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { apiConfig } from "@amigurumi/config";
+import { fetchProducts, type Product } from "@amigurumi/api";
 import { Button, Card, palette } from "@amigurumi/ui";
-
-type Product = {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  yarnType: string;
-  difficulty: string;
-  imageUrl: string;
-};
 
 export function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await axios.get<Product[]>(`${apiConfig.catalog}/api/products`);
-        setProducts(response.data);
+        const data = await fetchProducts();
+        setProducts(data);
       } catch (error) {
         console.error("Failed to load products", error);
+        setError(error instanceof Error ? error.message : "Unable to load products");
       } finally {
         setLoading(false);
       }
@@ -65,6 +55,13 @@ export function App() {
 
       {loading ? (
         <div style={{ color: palette.muted }}>Loading catalog...</div>
+      ) : error ? (
+        <Card title="We hit a snag">
+          <div style={{ color: palette.highlight }}>{error}</div>
+          <Button tone="ghost" onClick={() => location.reload()}>
+            Retry
+          </Button>
+        </Card>
       ) : (
         <section
           style={{

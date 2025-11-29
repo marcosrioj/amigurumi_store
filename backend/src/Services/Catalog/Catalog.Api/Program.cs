@@ -3,12 +3,22 @@ using AmigurumiStore.Catalog.Application.Data;
 using AmigurumiStore.Catalog.Application.Dtos;
 using AmigurumiStore.Catalog.Application.Extensions;
 using AmigurumiStore.Catalog.Application.Queries;
+using AmigurumiStore.Catalog.Api.Health;
 using MediatR;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCatalogApplication(builder.Configuration.GetConnectionString("CatalogDb")!);
+builder.Services.AddProblemDetails(options =>
+{
+    options.Map<KeyNotFoundException>(ex => Results.Problem(title: "Not found", detail: ex.Message, statusCode: StatusCodes.Status404NotFound));
+    options.Map<InvalidOperationException>(ex => Results.Problem(title: "Invalid operation", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest));
+    options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
+});
+builder.Services.AddExceptionHandler();
+builder.Services.AddHealthChecks().AddCheck<DbHealthCheck>("catalog-db");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -19,6 +29,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseExceptionHandler();
 
 app.MapGet("/api/products", async ([FromServices] IMediator mediator, CancellationToken ct) =>
     Results.Ok(await mediator.Send(new GetProductsQuery(), ct)));
@@ -46,6 +58,8 @@ app.MapDelete("/api/products/{id:guid}", async (Guid id, [FromServices] IMediato
     await mediator.Send(new DeleteProductCommand(id), ct);
     return Results.NoContent();
 });
+
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {

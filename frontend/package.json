@@ -17,6 +17,9 @@
     "lint": "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\""
   },
   "dependencies": {
+    "@amigurumi/api": "0.1.0",
+    "@amigurumi/config": "0.1.0",
+    "@amigurumi/ui": "0.1.0",
     "axios": "^1.7.7",
     "react": "19.0.0-rc.1",
     "react-dom": "19.0.0-rc.1",

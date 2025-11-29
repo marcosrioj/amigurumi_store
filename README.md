@@ -29,6 +29,7 @@ Services/ports:
 - Ordering API: `http://localhost:5003`
 - Storefront: `http://localhost:5173`
 - Admin: `http://localhost:5174`
+- Each API exposes `/health` for container/uptime checks.
 
 ## Local development (without Docker)
 1) Backend: restore/build each service from `backend/` with `dotnet restore && dotnet run` in the service folder. Update `appsettings.json` connection strings if your SQL Server differs.

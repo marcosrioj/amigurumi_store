@@ -1,20 +1,8 @@
 import { FormEvent, useEffect, useState, type CSSProperties } from "react";
-import axios from "axios";
-import { apiConfig } from "@amigurumi/config";
+import { createProduct, fetchProducts, type Product, type CreateProduct } from "@amigurumi/api";
 import { Button, Card, palette } from "@amigurumi/ui";
 
-type Product = {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  yarnType: string;
-  difficulty: string;
-  imageUrl: string;
-};
-
-const blankProduct: Omit<Product, "id"> = {
+const blankProduct: CreateProduct = {
   name: "",
   description: "",
   price: 0,
@@ -28,10 +16,20 @@ export function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState(blankProduct);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const response = await axios.get<Product[]>(`${apiConfig.catalog}/api/products`);
-    setProducts(response.data);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchProducts();
+      setProducts(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load products");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -41,10 +39,13 @@ export function App() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
+    setError(null);
     try {
-      await axios.post(`${apiConfig.catalog}/api/products`, form);
+      await createProduct(form);
       setForm(blankProduct);
       await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save product");
     } finally {
       setSaving(false);
     }
@@ -163,33 +164,40 @@ export function App() {
               {saving ? "Saving..." : "Publish product"}
             </Button>
           </div>
+          {error ? <div style={{ color: palette.highlight, gridColumn: "1 / -1" }}>{error}</div> : null}
         </form>
       </Card>
 
       <Card title="Inventory">
-        <div style={{ display: "grid", gap: "0.75rem" }}>
-          {products.map((product) => (
-            <div
-              key={product.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                alignItems: "center",
-                padding: "0.75rem 1rem",
-                borderRadius: "12px",
-                background: "rgba(255,255,255,0.02)"
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700 }}>{product.name}</div>
-                <div style={{ color: palette.muted, fontSize: "0.9rem" }}>{product.description}</div>
+        {loading ? (
+          <div style={{ color: palette.muted }}>Loading inventory...</div>
+        ) : error ? (
+          <div style={{ color: palette.highlight }}>{error}</div>
+        ) : (
+          <div style={{ display: "grid", gap: "0.75rem" }}>
+            {products.map((product) => (
+              <div
+                key={product.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  alignItems: "center",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "12px",
+                  background: "rgba(255,255,255,0.02)"
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>{product.name}</div>
+                  <div style={{ color: palette.muted, fontSize: "0.9rem" }}>{product.description}</div>
+                </div>
+                <div style={{ textAlign: "right", color: palette.highlight }}>
+                  ${product.price.toFixed(2)} · {product.stock} units
+                </div>
               </div>
-              <div style={{ textAlign: "right", color: palette.highlight }}>
-                ${product.price.toFixed(2)} · {product.stock} units
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

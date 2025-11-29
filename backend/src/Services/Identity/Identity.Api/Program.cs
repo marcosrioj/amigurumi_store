@@ -6,7 +6,9 @@ using AmigurumiStore.Identity.Application.Dtos;
 using AmigurumiStore.Identity.Application.Extensions;
 using AmigurumiStore.Identity.Application.Models;
 using AmigurumiStore.Identity.Application.Services;
+using AmigurumiStore.Identity.Api.Health;
 using MediatR;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +19,14 @@ var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 builder.Services.AddIdentityApplication(
     builder.Configuration.GetConnectionString("IdentityDb")!,
     jwtOptions);
+builder.Services.AddProblemDetails(options =>
+{
+    options.Map<KeyNotFoundException>(ex => Results.Problem(title: "Not found", detail: ex.Message, statusCode: StatusCodes.Status404NotFound));
+    options.Map<InvalidOperationException>(ex => Results.Problem(title: "Invalid operation", detail: ex.Message, statusCode: StatusCodes.Status400BadRequest));
+    options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
+});
+builder.Services.AddExceptionHandler();
+builder.Services.AddHealthChecks().AddCheck<DbHealthCheck>("identity-db");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -30,6 +40,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseExceptionHandler();
 
 app.MapPost("/api/auth/register", async ([FromBody] RegisterDto request, [FromServices] IMediator mediator, CancellationToken ct) =>
 {
@@ -65,6 +76,8 @@ app.MapGet("/api/auth/profile", async ([FromServices] IMediator mediator, Claims
     var profile = await mediator.Send(new AmigurumiStore.Identity.Application.Queries.GetProfileQuery(Guid.Parse(userId)), ct);
     return profile is null ? Results.NotFound() : Results.Ok(profile);
 }).RequireAuthorization();
+
+app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {
